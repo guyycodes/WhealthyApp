@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "PRU5P33TD6.ai.whealthy.whealth",
+        "paths": ["/auth/*", "/auth/callback/*", "/auth/error/*", "/auth/registered/*"]
+      }
+    ]
+  }
+}

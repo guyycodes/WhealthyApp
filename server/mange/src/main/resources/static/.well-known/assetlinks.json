@@ -1,0 +1,10 @@
+[
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "ai.whealthy.whealth",
+        "sha256_cert_fingerprints": ["A9:05:C9:C9:94:BC:BC:53:1A:2D:5D:88:51:52:5D:F5:C5:37:B6:40:CE:AE:9E:16:D9:60:81:84:BB:3C:35:71"]
+      }
+    }
+  ]

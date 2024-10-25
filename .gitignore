@@ -175,4 +175,4 @@ google-credentials
 .idea
 mange-client
 mysql-java-docker
-server
+server/mange/google-credentials.json
