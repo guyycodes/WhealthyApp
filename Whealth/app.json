@@ -1,0 +1,77 @@
+{
+  "expo": {
+    "name": "Whealth",
+    "slug": "whealthy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "whealthy",
+    "platforms": ["ios", "android"],
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2d3436"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.whealthy.whealth",
+      "associatedDomains": ["applinks:whealthy.ai"],
+      "usesAppleSignIn": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#2d3436"
+      },
+      "softwareKeyboardLayoutMode": "pan",
+      "package": "ai.whealthy.whealth",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "whealthy",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            },
+            {
+              "scheme": "https",
+              "host": "whealthy.ai",
+              "pathPrefix": "/auth/callback"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-apple-authentication"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "1e8254d0-0092-454f-8f36-00b5d5f65f3b"
+      }
+    },
+    "owner": "guymorganb",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3c9fc03c-913f-4113-8e6f-20003b39ea5f"
+    }
+  }
+}

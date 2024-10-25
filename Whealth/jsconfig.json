@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "types": ["react-native-reanimated"],
+    "moduleResolution": "node",
+    "baseUrl": ".",             // Base directory for non-relative imports
+    "paths": {
+      "config/*": ["app/config/*"],
+      "app/*": ["./app/*"]
+    },
+    "jsx": "react-native"
+  },
+  "include": ["**/*.js", "**/*.jsx"], // Include all JavaScript and JSX files
+  "exclude": ["node_modules"]
+}
