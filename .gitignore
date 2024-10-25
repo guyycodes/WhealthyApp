@@ -173,6 +173,5 @@ google-credentials
 **/src/main/resources/keys/
 
 .idea
-mange-client
 mysql-java-docker
 server/mange/google-credentials.json
