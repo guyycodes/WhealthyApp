@@ -3,12 +3,11 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { AsyncStorageUtil } from 'app/util/DeviceStore';
 import * as SecureStore from 'expo-secure-store';
-import { decodeToken } from 'expo-jwt';
-
-
 
 const SequenceContext = createContext();
-
+const TOKEN_KEY = 'auth_token';
+const CLAIMS_KEY = 'token_claims';
+const ONE_HOUR = 60 * 60; // in seconds
 
 export function SequenceProvider({ children }) {
   const [isWalkthroughCompleted, setIsWalkthroughCompleted] = useState(false);
@@ -47,6 +46,7 @@ export function SequenceProvider({ children }) {
   useEffect(() => {
     showTabNavigatorRef.current = showTabNavigator;
   }, [showTabNavigator]);
+  
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const setSelectedLanguage = useCallback(async(lang) => {
   setLanguage(lang);
@@ -56,10 +56,12 @@ const setSelectedLanguage = useCallback(async(lang) => {
     console.error('Error saving notification preference', error);
   }
 }, []);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const useTabNavigator = useCallback((state) => {
   setShowTabNavigator(state);
 }, []);
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 const updateAllowsNotifications = useCallback(async (value) => {
     setAllowsNotifications(value);
@@ -69,6 +71,7 @@ const updateAllowsNotifications = useCallback(async (value) => {
       console.error('Error saving notification preference', error);
     }
   }, []);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const setWalkthroughCompleted = useCallback((value) => {
   setIsWalkthroughCompleted(value);
@@ -95,128 +98,123 @@ const clearNavigationStack = () => {
   });
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  const getToken = async () => {
+const getToken = async (decode=false) => {
+  try {
+    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (!token) {
+      return null;
+    }
+
+    if (decode) {
+      return decodeToken(token);
+    }
+
+    return token;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const serializeClaims = (claims) => { // Helper function to serialize dates in claims
+  if (!claims) return null;
+  return {
+    ...claims,
+    issuedAt: claims.issuedAt.toISOString(),
+    expirationTime: claims.expirationTime.toISOString(),
+  };
+};
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+  const deserializeClaims = (claims) => { // Helper function to deserialize dates in claims
+    if (!claims) return null;
+    return {
+      ...claims,
+      issuedAt: new Date(claims.issuedAt),
+      expirationTime: new Date(claims.expirationTime),
+      isExpired: () => new Date().getTime() >= new Date(claims.expirationTime).getTime(),
+      getRemainingTime: () => Math.max(0, new Date(claims.expirationTime).getTime() - new Date().getTime()),
+    };
+  };
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const decodeToken = (token) => {
     try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      if (!token) {
-        return null;
-      }
-      return token;
+      const [, payloadBase64] = token.split('.');
+      const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
     } catch (error) {
-      console.error('Error getting token:', error);
+      console.error('Error decoding JWT:', error);
       return null;
     }
   };
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const getTokenClaims = async () => {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+const setInitialToken = async (token) => {  // Set initial token from login
   try {
-    const token = await SecureStore.getItemAsync('token');
     if (!token) {
-      setTokenClaims(null);
-      return null;
+      throw new Error('Token is required');
     }
-    const claims = decodeToken(token);
+
+    // Parse and validate the token
+    const claims = parseTokenClaims(token);
     
-    const tokenData = {
-      email: claims.sub,
-      issuedAt: new Date(claims.iat * 1000),
-      expirationTime: new Date(claims.exp * 1000),
-
-      // custom claims
-      valid: claims.valid,
-      userExists: claims.userExists,
-      isReturningUser: claims.isReturningUser,
-      timeUntilExpiration: claims.timeUntilExpiration,
-
-      // Helper methods
-      isExpired: () => {
-        const now = new Date().getTime();
-        return now >= claims.exp * 1000;
-      },
-      getRemainingTime: () => {
-        const now = new Date().getTime();
-        const expTime = claims.exp * 1000;
-        return Math.max(0, expTime - now);
-      }
+    if (!claims) {
+      throw new Error('Invalid token format');
     }
-    
-    setTokenClaims(tokenData);
-    return tokenData;
-  }catch(error) {
-    console.error('Error decoding token:', error);
-    setTokenClaims(null);
-    return null;
-  }
-}
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const refreshToken = async () => {
-  try {
-    // Call your refresh token endpoint
-    const response = await fetch('your/jwt/refresh/endpoint', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: await SecureStore.getItemAsync('token')
-      })
-    });
-    
-    if (response.ok) {
-      const { token } = await response.json();
-      await SecureStore.setItemAsync('token', token);
-      return await getTokenClaims(); // update tokenClaims state
+    if (!claims.valid) {
+      throw new Error('Token is marked as invalid');
     }
-    return null;
+
+    if (claims.isExpired()) {
+      throw new Error('Token is expired');
+    }
+
+    // Since we know the Java side sets a 2-hour expiration
+    // we can verify the timeUntilExpiration claim matches what we expect
+    if (claims.timeUntilExpiration !== 7200) {
+      throw new Error('Token expiration time mismatch');
+    }
+
+
+    // Store token and claims
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await SecureStore.setItemAsync(CLAIMS_KEY, JSON.stringify(serializeClaims(claims)));
+    
+    // Update state
+    setTokenClaims(claims);
+    setIsAuthenticated(true);
+
+    return claims;
   } catch (error) {
-    console.error('Error refreshing token:', error);
+    console.error('Error setting initial token:', error);
+    await cleanupTokenData();
     return null;
   }
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const checkAndRefreshToken = async () => {
-  const ONE_HOUR = 60 * 60; // in seconds
-  
-  await getTokenClaims();
-  
-  if (!tokenClaims) {
-    router.replace('/(login)', {
-      reset: true // Also clear the stack when navigating to login
-    });
-    return false;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+const cleanupTokenData = async () => {  // Clean up token and claims
+  try {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(CLAIMS_KEY);
+    setTokenClaims(null);
+    setIsAuthenticated(false);
+  } catch (error) {
+    console.error('Error cleaning up token data:', error);
   }
-
-  if (!tokenClaims.valid) {
-    router.replace('/(login)', {
-      reset: true // Also clear the stack when navigating to login
-    });
-    return false;
-  }
-
-  // If less than 1 hour remaining, try to refresh
-  if (tokenClaims.timeUntilExpiration < ONE_HOUR) {
-    const refreshedClaims = await refreshToken();
-    if (!refreshedClaims) {
-      router.replace('/(login)', {
-        reset: true // Also clear the stack when navigating to login
-      });
-      return false;
-    }
-    setTokenClaims(refreshedClaims); // Changed from setClaims to setTokenClaims
-    return true;
-  }
-
-  setTokenClaims(tokenClaims); // Changed from setClaims to setTokenClaims
-  return true;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const parseTokenClaims = (token) => {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+const parseTokenClaims = (token) => {    // Parse and validate token claims
   try {
-    const claims = token; // In real code this would be decoded JWT
+    const claims = decodeToken(token);
     const tokenData = {
       email: claims.sub,
       issuedAt: new Date(claims.iat * 1000),
@@ -234,6 +232,102 @@ const parseTokenClaims = (token) => {
     return null;
   }
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+const getTokenClaims = async () => {   // Get token claims from secure storage
+try {
+  const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  if (!token) {
+    await cleanupTokenData();
+    return null;
+  }
+
+  const claims = parseTokenClaims(token);
+  if (!claims || claims.isExpired()) {
+    await cleanupTokenData();
+    return null;
+  }
+
+  await SecureStore.setItemAsync(CLAIMS_KEY, JSON.stringify(serializeClaims(claims)));
+  setTokenClaims(claims);
+  setIsAuthenticated(true);
+  return claims;
+} catch (error) {
+  console.error('Error getting token claims:', error);
+  await cleanupTokenData();
+  return null;
+}
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const refreshToken = async () => {    // Refresh the token
+  try {
+    const currentToken = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (!currentToken) {
+      await cleanupTokenData();
+      return null;
+    }
+
+    const response = await fetch('your/jwt/refresh/endpoint', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token: currentToken })
+    });
+
+    if (!response.ok) {
+      await cleanupTokenData();
+      return null;
+    }
+
+    const { token } = await response.json();
+    const claims = parseTokenClaims(token);
+    
+    if (!claims || claims.isExpired()) {
+      await cleanupTokenData();
+      return null;
+    }
+
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await SecureStore.setItemAsync(CLAIMS_KEY, JSON.stringify(serializeClaims(claims)));
+    setTokenClaims(claims);
+    setIsAuthenticated(true);
+    return claims;
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    await cleanupTokenData();
+    return null;
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const checkAndRefreshToken = async () => {  // Check and refresh token if needed
+try {
+  const claims = await getTokenClaims();
+  
+  if (!claims) {
+    return false;
+  }
+
+  // If less than 1 hour remaining, try to refresh
+  if (claims.getRemainingTime() < ONE_HOUR * 1000) {
+    console.log('Refreshing token, less than 1 hour remaining...');
+    const refreshedClaims = await refreshToken();
+    if (!refreshedClaims) {
+      console.log('token refresh failed');
+      return false;
+    }
+  }
+
+  return true; // if there are claim from the token, and time until expiry is more than 1 hour, return true
+} catch (error) {
+  console.error('Error checking token:', error);
+  await cleanupTokenData();
+  router.replace('/(login)', { reset: true });
+  return false;
+}
+};
   return (
     <SequenceContext.Provider 
       value={{
@@ -245,11 +339,16 @@ const parseTokenClaims = (token) => {
         screenStack,
         isWalkthroughCompleted,
         language,
+        isAuthenticated,
         setSelectedLanguage,
         clearNavigationStack,
         setWalkthroughCompleted,
         useTabNavigator,
         updateAllowsNotifications,
+        checkAndRefreshToken,
+        getTokenClaims,
+        setInitialToken,
+        getToken
         // Include login, logout, and finishWelcomeSequence here
       }}
     >
