@@ -2,12 +2,10 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-const MoreScreen = () => {
+export const VisualsScreen = () => {
   return (
     <View>
-      <Text>More Screen</Text>
+      <Text>Visuals Screen</Text>
     </View>
   );
 };
-
-export default MoreScreen;

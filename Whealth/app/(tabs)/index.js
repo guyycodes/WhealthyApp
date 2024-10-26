@@ -1,7 +1,8 @@
+// app/(tabs)/index.jsx
 import React, {useEffect} from 'react';
-import HomeScreen from 'app/screens/TabElements/Home';
+import { Redirect } from 'expo-router';
 
-export default function Home() {
+export default function IndexTab() {
 
     useEffect(() => {
     console.log("Home Screen");
@@ -9,6 +10,6 @@ export default function Home() {
 
   return (
     // redirect to home
-    <HomeScreen />
+    <Redirect href="/(tabs)/home" />
   );
 }

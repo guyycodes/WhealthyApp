@@ -10,10 +10,10 @@ export default function TabLayout() {
       }}
       tabBar={(props) => <BottomTabNavigator {...props} />}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="favorites" options={{ title: 'visuals' }} />
-      <Tabs.Screen name="ai" options={{ title: 'ai' }} />
-      <Tabs.Screen name="articles" options={{ title: 'articles' }} />
+      <Tabs.Screen name="home" options={{ title: 'Home' }} />
+      <Tabs.Screen name="visuals" options={{ title: 'visuals' }} />
+      <Tabs.Screen name="ai" options={{ title: 'Ai' }} />
+      <Tabs.Screen name="featured_content" options={{ title: 'Featured_Content' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );

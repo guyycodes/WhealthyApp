@@ -38,33 +38,34 @@ export function BottomTabNavigator() {
   const router = useRouter();
   const currentPath = usePathname();
   const safeAreaStyle = useSafeAreaInsetsStyle(['end'], 'padding');
-  const { isUserLoggedIn } = useSequencer();
+  const { getToken, checkAndRefreshToken } = useSequencer();
 
   const tabs = [
-    { nameTx: 'tabsNavigator.home', icon: 'homeIcon', path: '/(welcome)/welcome' },
-    { nameTx: 'tabsNavigator.visuals', icon: 'visuals', path: '/(welcome)/favorites' },
-    { nameTx: 'tabsNavigator.ai', icon: 'ai', path: '/(welcome)/search' },
-    { nameTx: 'tabsNavigator.articles', icon: 'article', path: '/(welcome)/profile' },
-    { nameTx: 'tabsNavigator.profile', icon: 'profile', path: '/(welcome)/settings' },
+    { nameTx: 'tabsNavigator.home', icon: 'homeIcon', path: '/(tabs)/home' },
+    { nameTx: 'tabsNavigator.visuals', icon: 'visuals', path: '/(tabs)/visuals' },
+    { nameTx: 'tabsNavigator.ai', icon: 'ai', path: '/(tabs)/ai' },
+    { nameTx: 'tabsNavigator.featured_content', icon: 'article', path: '/(tabs)/featured_content' },
+    { nameTx: 'tabsNavigator.profile', icon: 'profile', path: '/(tabs)/profile' },
   ];
 
-  const handleNavigation = (path) => {
-    if (isUserLoggedIn) {
-      router.push(path);
-    } else {
-      switch (path) {
-        case '/(login)':
-          router.push(path);
-          break;
-        case '/(welcome)/favorites':
-        case '/(welcome)/search':
-        case '/(welcome)/profile':
-        case '/(welcome)/settings':
-          router.push('/(login)');
-          break;
-        default:
-          router.push('/(login)');
+  const handleNavigation = async (path) => {
+    try {
+      const token = await getToken();
+      if (!token) {
+        router.push('/(login)');
+        return;
       }
+
+      const isTokenValid = await checkAndRefreshToken();
+      if (isTokenValid) {
+        router.push('/(login)');
+        // router.replace(path);
+      } else {
+        router.push('/(login)');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      router.push('/(login)');
     }
   };
 

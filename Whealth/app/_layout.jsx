@@ -21,6 +21,7 @@ function Navigation() {
         <Stack.Screen name="(welcome)" options={{ headerShown: false }} />
         <Stack.Screen name="(login)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
     </Stack>
      
   </ThemeProvider>

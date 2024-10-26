@@ -1,10 +1,9 @@
 import React from 'react';
-import FavoritesScreen from 'app/screens/TabElements/Favorites';
-import { View } from 'react-native';
+import VisualsScreen from 'app/screens/TabElements/Visuals';
 
-export default function Favorites() {
+export default function VisualsTab() {
 
   return (
-    <FavoritesScreen />
+    <VisualsScreen />
   );
 }

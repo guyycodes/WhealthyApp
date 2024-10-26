@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -9,9 +9,10 @@ import { useSequencer } from 'app/Context/Controller';
 export const GoogleSignIn = () => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const { setInitialToken, getToken } = useSequencer();
+    const { setInitialToken, getToken, removeToken } = useSequencer();
 
     const handleRedirect = async (url) => {
+
       const { hostname, path, queryParams } = Linking.parse(url);
       // console.log(`hostname: ${hostname}, path: ${path}, queryParams:`, queryParams);
       // Extract the token from queryParams
@@ -19,36 +20,40 @@ export const GoogleSignIn = () => {
       const token = queryParams?.token;
       const fullPath = `${hostname}/${path}`;
 
-       if (token) {
-            try {
-              // Check if there's an existing token
-              const existingToken = await SecureStore.getItemAsync('auth_token');
-              if (existingToken) {
-                  // Remove the existing token
-                  await SecureStore.deleteItemAsync('auth_token');
-                  console.log('Existing token removed');
-              }
-
-              // Save the new token
-              await setInitialToken(token);
-              console.log('New token saved');
-
-          } catch (error) {
-              console.error('Error handling secure storage:', error);
-              Alert.alert(
-                  'Storage Error',
-                  'Failed to securely store authentication data. Please try again.'
-              );
+      if (token) {
+        try {
+          console.log('Attempting to set initial token');
+          await removeToken();
+          const claims = await setInitialToken(token);
+          
+          if (claims) {
+            console.log('Token successfully stored with claims:', {
+              email: claims.email,
+              isReturningUser: claims.isReturningUser,
+              userExists: claims.userExists
+            });
+            
+            // Verify token was stored correctly
+            const storedToken = await getToken();
+            const decodedToken = await getToken(true);
+            console.log('Token verification:', {
+              hasStoredToken: !!storedToken,
+              hasDecodedToken: !!decodedToken
+            });
+          } else {
+            throw new Error('Failed to store token - no claims returned');
           }
+        } catch (error) {
+          console.error('Error during token storage:', error);
+          Alert.alert(
+            'Authentication Error',
+            'Failed to complete sign in process. Please try again.'
+          );
+          isAuthenticating.current = false;
+          return;
+        }
       }
-
-      // Log both decoded and non-decoded tokens
-      const rawToken = await getToken();
-      const decodedToken = await getToken(true);
-
-      console.log("Raw token:", rawToken);
-      console.log("Decoded token:", decodedToken);
-
+     
       switch (fullPath) {
         case 'auth/home':
           if (!token) {
@@ -58,7 +63,7 @@ export const GoogleSignIn = () => {
         }
           // Navigate to the desired screen with the token
           router.replace({
-            pathname: '/(auth)/home',
+            pathname: '/(auth)',
           });
           break;
         case 'auth/callback':
@@ -80,31 +85,44 @@ export const GoogleSignIn = () => {
         default:
           console.log('Unhandled deep link path:', fullPath);
       }
+
     };
 
     useEffect(() => {
-        const handleDeepLink = (event) => {
-          const url = event.url;
-          console.log('Received deep link:', url);
+      const handleDeepLink = (event) => {
+        const url = event.url;
+        const parsedUrl = Linking.parse(url);
+        console.log('Received deep link:', url);
+        
+        if (parsedUrl.scheme === 'whealthy') {
           handleRedirect(url);
-        };
+        } else {
+          console.log('Ignoring non-app deep link:', url);
+        }
+        // Remove this line as it's causing the unconditional redirect:
+        // handleRedirect(url);  
+      };
     
-        // Add event listener for incoming deep links (Android)
-        const subscription = Linking.addEventListener('url', handleDeepLink);
+      // Add event listener for incoming deep links (Android)
+      const subscription = Linking.addEventListener('url', handleDeepLink);
     
-        // Handle the case when the app is launched from a deep link (cold start)
-        Linking.getInitialURL().then((url) => {
-          if (url) {
-            // console.log('App opened with URL:', url);
+      // Handle the case when the app is launched from a deep link (cold start)
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          const parsedUrl = Linking.parse(url);
+          if (parsedUrl.scheme === 'whealthy') {
             handleRedirect(url);
+          } else {
+            console.log('Ignoring non-app deep link:', url);
           }
-        });
+        }
+      });
     
-        // Clean up the event listener
-        return () => {
-          subscription.remove();
-        };
-      }, []);
+      // Clean up the event listener
+      return () => {
+        subscription.remove();
+      };
+    }, []);
 
     async function fetchGoogleAuth() {
         try {
@@ -124,6 +142,7 @@ export const GoogleSignIn = () => {
     
       const oAuthLogin = async () => {
         setLoading(true);
+
         try {
           const authUrl = await fetchGoogleAuth();
           console.log('authUrl:', authUrl);

@@ -1,3 +1,4 @@
+// /app/(login)/index
 import { useFonts } from 'expo-font';
 import React, { useEffect, useState } from 'react';
 import {
@@ -38,11 +39,11 @@ export default function LoginIndex() {
   }, []);
 
   const handleLogin = () => {
-    router.replace('/(login)/login')
+    router.push('/(login)/login');
   };
 
   const handleSignup = () => {
-    router.replace('/(login)/signup')
+    router.push('/(login)/signup');
   };
 
   if (!fontsLoaded) {

@@ -46,7 +46,7 @@ export function SequenceProvider({ children }) {
   useEffect(() => {
     showTabNavigatorRef.current = showTabNavigator;
   }, [showTabNavigator]);
-  
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const setSelectedLanguage = useCallback(async(lang) => {
   setLanguage(lang);
@@ -211,6 +211,8 @@ const cleanupTokenData = async () => {  // Clean up token and claims
   }
 };
 
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
 const parseTokenClaims = (token) => {    // Parse and validate token claims
   try {
@@ -230,6 +232,30 @@ const parseTokenClaims = (token) => {    // Parse and validate token claims
   } catch (error) {
     console.error('Error parsing token claims:', error);
     return null;
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+const removeToken = async () => {  // Remove token and reset auth state
+  try {
+    // Check if token exists first
+    const existingToken = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (!existingToken) {
+      console.log('No token to remove');
+      return true; // Return success since end state is what we want
+    }
+
+    // If token exists, proceed with removal
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(CLAIMS_KEY);
+    setTokenClaims(null);
+    setIsAuthenticated(false);
+    
+    console.log('Token and claims successfully removed');
+    return true;
+  } catch (error) {
+    console.error('Error removing token:', error);
+    return false;
   }
 };
 
@@ -332,7 +358,6 @@ try {
     <SequenceContext.Provider 
       value={{
         sequence,
-        isAuthenticated,
         allowsNotifications,
         showTabNavigator,
         animatedStyle,
@@ -348,7 +373,8 @@ try {
         checkAndRefreshToken,
         getTokenClaims,
         setInitialToken,
-        getToken
+        getToken,
+        removeToken
         // Include login, logout, and finishWelcomeSequence here
       }}
     >

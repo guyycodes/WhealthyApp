@@ -1,9 +1,9 @@
 import React from 'react';
-import SettingsScreen from 'app/screens/TabElements/Settings';
+import {AiScreen} from 'app/screens/TabElements/ArtificialIntelligence';
 
-export default function Settings() {
+export default function AiTab() {
 
   return (
-    <SettingsScreen />
+    <AiScreen />
   );
 }

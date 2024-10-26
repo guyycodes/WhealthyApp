@@ -7,5 +7,5 @@ export default function AuthIndex() {
 
   return (
     <Redirect href="/(auth)/home" />
-)
+  )
 }

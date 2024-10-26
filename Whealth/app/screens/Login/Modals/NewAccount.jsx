@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { USE_CUSTOM_POST } from 'app/util/Hooks/PostHook'
+import { useSequencer } from 'app/Context/Controller';
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,7 +20,7 @@ export const NewAccountModal = ({ isVisible, onClose }) => {
   const [showTerms, setShowTerms] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { getToken } = useSequence();
+  const { getToken } = useSequencer();
 
   const { sendRequest, loading, error, response, LoadingComponent } = USE_CUSTOM_POST('https://api.example.com/data')
 

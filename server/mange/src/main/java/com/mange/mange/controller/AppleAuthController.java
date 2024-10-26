@@ -133,7 +133,7 @@ public class AppleAuthController {
             // jwtDto.setIsReturningUser(isReturningUser);
             String token = jwtUtil.generateToken(jwtDto);
             // Return the populated token
-            return ResponseEntity.status(200).body(new AppleAuthResponse("User not registered", token));
+            return ResponseEntity.status(200).body(new AppleAuthResponse("User Auth Success", token));
 
         } catch (JwtException e) {
             logger.error("JWT processing failed for user: {}. Error: {}", user.getEmail(), e.getMessage(), e);

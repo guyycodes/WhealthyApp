@@ -1,10 +1,10 @@
 // app/(login)/login.jsx
 import React from 'react';
-import { SignInForm } from 'app/screens/Login/UserLogin';
+import { ErrorScreen } from 'app/screens/Authenticated/Error';
 
 export default function ErrorSection() {
 
   return (
-    <SignInForm />
+    <ErrorScreen />
   );
 }

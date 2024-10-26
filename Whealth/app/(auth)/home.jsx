@@ -1,10 +1,10 @@
 // app/(login)/passwordRecovery.jsx
 import React from 'react';
-import { PasswordRecoveryScreen } from 'app/screens/Login/PasswordRecovery';
+import { HomeScreen } from 'app/screens/Authenticated/HomeScreen';
 
 export default function HomeSection() {
 
   return (
-    <PasswordRecoveryScreen />
+    <HomeScreen />
   );
 }

@@ -2,9 +2,11 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { View, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useSequencer } from 'app/Context/Controller';
 
 export const AppleSignIn = () => {
   const router = useRouter();
+  const { setInitialToken } = useSequencer();
 
   const handleAppleSignIn = async () => {
     try {
@@ -43,10 +45,15 @@ export const AppleSignIn = () => {
                   style: 'cancel',
                   onPress: async () => {
                     try {
-                      await SecureStore.setItemAsync('temp_auth_token', data.token);
-                      await router.replace('/(welcome)/welcome');
+                      console.log(data.token)
+                      if (claims) {
+                        router.replace('/(welcome)/welcome');
+                      } else {
+                        throw new Error('Failed to set temporary token');
+                      }
                     } catch (error) {
                       console.error('Navigation error:', error);
+                      await cleanupTokenData();
                       Alert.alert('Error', 'Failed to navigate. Please try again.');
                     }
                   }
@@ -56,22 +63,16 @@ export const AppleSignIn = () => {
                   style: 'default',
                   onPress: async () => {
                     try {
-                      const registrationData = {
-                        email: credential.email,
-                        fullName: credential.fullName,
-                        identityToken: credential.identityToken,
-                        token: data.token
-                      };
-
-                      await SecureStore.setItemAsync('pendingRegistration', 
-                        JSON.stringify(registrationData));
-                      
-                      await router.replace({
-                        pathname: '/(auth)/callback',
-                        params: { mode: 'registration' }
-                      });
+                      // Set initial token for registration process
+                      const claims = await setInitialToken(data.token);
+                      if (claims) {
+                        router.replace('/(auth)/callback');
+                      } else {
+                        throw new Error('Failed to set registration token');
+                      }
                     } catch (error) {
                       console.error('Registration error:', error);
+                      await cleanupTokenData();
                       Alert.alert('Error', 'Failed to proceed with registration. Please try again.');
                     }
                   }
@@ -94,8 +95,12 @@ export const AppleSignIn = () => {
       } else {
         // Successful login
         try {
-          await SecureStore.setItemAsync('auth_token', data.token);
-          await router.replace('/(tabs)');
+          const claims = await setInitialToken(data.token);
+          if (claims) {
+            router.replace('/(auth)');
+          } else {
+            throw new Error('Failed to set authentication token');
+          }
         } catch (error) {
           console.error('Post-login error:', error);
           Alert.alert('Error', 'Failed to complete login. Please try again.');

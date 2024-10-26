@@ -1,13 +1,15 @@
 // screens/HomeScreen.js
-import React from 'react';
+import React, {useEffect} from 'react';
+import { Redirect } from 'expo-router';
 import { View, Text } from 'react-native';
 
-const HomeScreen = () => {
+export const HomeScreen = () => {
+
+  useEffect(() => {
+    console.log("Redirects to Home Screen");
+  }, []);
+
   return (
-    <View>
-      <Text>Home Screen</Text>
-    </View>
+    <Redirect href="/(auth)/home" />
   );
 };
-
-export default HomeScreen;

@@ -6,7 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "whealthy",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -19,7 +22,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ai.whealthy.whealth",
-      "associatedDomains": ["applinks:whealthy.ai"],
+      "associatedDomains": [
+        "applinks:whealthy.ai"
+      ],
       "usesAppleSignIn": true
     },
     "android": {
@@ -36,15 +41,10 @@
             {
               "scheme": "whealthy",
               "host": "auth",
-              "pathPrefix": "/callback"
-            },
-            {
-              "scheme": "https",
-              "host": "whealthy.ai",
-              "pathPrefix": "/auth/callback"
+              "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": ["BROWSABLE","DEFAULT"]
         }
       ]
     },
@@ -56,7 +56,15 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends.",
+          "cameraPermission": "The app accesses your camera to let you share photos with your friends."
+        }
+      ]
     ],
     "extra": {
       "router": {
